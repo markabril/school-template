@@ -1,0 +1,140 @@
+@import 'tailwindcss';
+
+/* Fraunces, self-hosted variable — one file, no request to Google, and no
+   third-party tracking on a school's public site. `wght` only: the optical-size
+   axis would be lovely but doubles the payload for a difference invisible at
+   the sizes actually used. `swap` so headings render immediately in Georgia
+   and reflow once, rather than sitting invisible on a slow connection. */
+@import '@fontsource-variable/fraunces/wght.css';
+
+/* ============================================================================
+   Cherished Moments School — design tokens
+   Derived from the school crest. See docs/design-system.md.
+
+   CONTRAST RULE — the one thing not to break:
+   --color-gold (#B4882B) measures ~3.1:1 on cream and ~3.6:1 on maroon. Both
+   FAIL WCAG AA for body text. Gold is decorative: rules, borders, icon fills,
+   the tree motif, large display numerals. When gold has to carry words it
+   becomes --color-gold-ink on light or --color-gold-light on dark.
+   The names say so on purpose, because someone will otherwise match the logo
+   by eye and quietly reintroduce 3:1 body text.
+   ========================================================================= */
+
+@theme {
+  /* --- Brand ------------------------------------------------------------ */
+  --color-maroon: #6e1d2b;
+  --color-maroon-deep: #4e1420;
+  --color-maroon-tint: #f5e4e7;
+
+  --color-navy: #1b2545;
+  --color-navy-deep: #11172c;
+  --color-navy-tint: #e4e8f2;
+
+  --color-gold: #b4882b; /* decorative only */
+  --color-gold-ink: #8a6a20; /* gold as TEXT on light — 5.0:1 */
+  --color-gold-light: #d9bc6a; /* gold as TEXT on dark  — 6.1:1 */
+  --color-gold-tint: #faf0d4;
+
+  /* --- Surface & text --------------------------------------------------- */
+  --color-cream: #faf7f2;
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #5a5550;
+  --color-hairline: #e6e0d8;
+
+  /* --- Type ------------------------------------------------------------- */
+  /* One webfont, deliberately. Most parents load this on mobile data on a
+     mid-range Android; a second family is 30-40KB nobody notices at 360px.
+     Body runs on the system stack: zero bytes, instant render. */
+  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Fluid scale, 1.200 mobile -> 1.250 desktop. Body never below 16px. */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: clamp(1.125rem, 0.2vw + 1.08rem, 1.25rem);
+  --text-xl: clamp(1.35rem, 0.5vw + 1.23rem, 1.563rem);
+  --text-2xl: clamp(1.62rem, 0.9vw + 1.4rem, 1.953rem);
+  --text-3xl: clamp(1.944rem, 1.5vw + 1.6rem, 2.441rem);
+  --text-4xl: clamp(2.33rem, 2.4vw + 1.75rem, 3.052rem);
+  --text-5xl: clamp(2.8rem, 3.6vw + 1.9rem, 3.815rem);
+
+  --radius-card: 0.5rem;
+  --spacing-section: 4.5rem;
+}
+
+/* ============================================================================
+   Base
+   ========================================================================= */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--color-maroon);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Visible focus everywhere. Never remove without replacing — keyboard users
+     on a public school site are not an edge case. */
+  :focus-visible {
+    outline: 3px solid var(--color-gold-ink);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Images never overflow, and reserve their space when width/height are set. */
+  img,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@layer components {
+  /* Keyboard users land here first; it is visually hidden until focused. */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    padding: 0.75rem 1.25rem;
+    background: var(--color-maroon);
+    color: var(--color-cream);
+    font-weight: 600;
+  }
+  .skip-link:focus {
+    left: 0;
+  }
+}

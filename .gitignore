@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.output/
+.nuxt/
+.data/
+.env
+.env.*
+!.env.example
+
+# SQLite database + WAL sidecars
+api/data/*.db
+api/data/*.db-shm
+api/data/*.db-wal
+
+# Uploaded media (user content, backed up separately — never committed)
+api/data/media/
+
+# Dev mailer output
+api/data/mail/
+
+*.log
+.DS_Store
+Thumbs.db
