@@ -71,6 +71,23 @@ check('/', 'footer is maroon with nav columns and contact details', (h) => {
   )
 })
 
+// ---- Task 11: page header band -------------------------------------------
+
+check('/history', 'CMS page without a hero gets the maroon title band', (h) =>
+  /data-page-header[^>]*class="[^"]*bg-maroon/.test(h) && /<h1[^>]*>\s*Our History\s*<\/h1>/.test(h),
+)
+
+check('/history', 'band carries a breadcrumb ending at the current page', (h) => {
+  const band = between(h, 'data-page-header', '</header>')
+  return (
+    band.includes('aria-label="Breadcrumb"') &&
+    band.includes('href="/"') &&
+    /aria-current="page"[^>]*>\s*Our History/.test(band)
+  )
+})
+
+check('/', 'homepage (hero first) has no title band', (h) => !h.includes('data-page-header'))
+
 // ---- end of checks — later tasks add sections above this line ---------------
 
 let failed = 0
