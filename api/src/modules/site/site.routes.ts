@@ -109,7 +109,8 @@ siteRoutes.put('/settings', async (req, res, next) => {
 
 siteRoutes.get('/navigation', async (_req, res, next) => {
   try {
-    res.json({ navigation: await service.listNavigation() })
+    const [navigation, tree] = await Promise.all([service.listNavigation(), service.exportNavigationTree()])
+    res.json({ navigation, tree })
   } catch (err) {
     next(err)
   }
@@ -117,26 +118,9 @@ siteRoutes.get('/navigation', async (_req, res, next) => {
 
 siteRoutes.put('/navigation', async (req, res, next) => {
   try {
-    const { items } = z
-      .object({
-        items: z
-          .array(
-            z.object({
-              location: z.enum(['header', 'footer']),
-              label: z.string().min(1).max(80).trim(),
-              pageId: z.string().nullish(),
-              url: z.string().max(300).nullish(),
-              parentId: z.string().nullish(),
-              opensNewTab: z.boolean().optional(),
-            }),
-          )
-          .max(60),
-      })
-      .parse(req.body)
-
-    res.json({
-      navigation: await service.saveNavigation(items, { id: req.auth!.user.id, ip: req.ip }),
-    })
+    const { items } = service.navigationInputSchema.parse(req.body)
+    await service.saveNavigation(items, { id: req.auth!.user.id, ip: req.ip })
+    res.json({ tree: await service.exportNavigationTree() })
   } catch (err) {
     next(err)
   }

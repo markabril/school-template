@@ -60,7 +60,7 @@ useSeoMeta({
           <ul class="flex items-center gap-1">
             <li v-for="item in chrome?.nav.header ?? []" :key="item.id">
               <NuxtLink
-                :to="item.href"
+                :to="item.href ?? item.children[0]?.href ?? '/'"
                 :target="item.opensNewTab ? '_blank' : undefined"
                 :rel="item.opensNewTab ? 'noopener' : undefined"
                 class="rounded-card px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:bg-maroon-tint hover:text-maroon"
@@ -92,7 +92,7 @@ useSeoMeta({
         <ul class="mx-auto max-w-6xl px-5 py-2">
           <li v-for="item in chrome?.nav.header ?? []" :key="item.id">
             <NuxtLink
-              :to="item.href"
+              :to="item.href ?? item.children[0]?.href ?? '/'"
               class="block rounded-card px-2 py-2.5 text-sm font-medium text-ink-muted"
               active-class="text-maroon"
             >
@@ -154,7 +154,7 @@ useSeoMeta({
           <h2 class="text-[11px] font-bold uppercase tracking-[0.16em] text-gold-light">More</h2>
           <ul class="mt-3 space-y-1.5 text-sm">
             <li v-for="item in chrome!.nav.footer" :key="item.id">
-              <NuxtLink :to="item.href" class="hover:text-cream">{{ item.label }}</NuxtLink>
+              <NuxtLink :to="item.href ?? item.children[0]?.href ?? '/'" class="hover:text-cream">{{ item.label }}</NuxtLink>
             </li>
           </ul>
         </div>
