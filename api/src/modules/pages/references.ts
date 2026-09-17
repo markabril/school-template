@@ -62,6 +62,25 @@ export async function resolveReferences(
             : all
           break
         }
+        case 'storiesColumns': {
+          const columns = (Array.isArray(data.columns) ? data.columns : []) as Array<{
+            title: string
+            category: string
+            limit?: number
+          }>
+
+          refs[block.id] = await Promise.all(
+            columns.map(async (column) => {
+              const limit = Number(column.limit ?? 3)
+              // Same cache key shape as newsTeaser, so a teaser and a column
+              // asking for the same category share one query.
+              const key = `posts:${limit}:${column.category}`
+              const result = await once(key, () => listPosts(limit, 0, column.category))
+              return { title: column.title, category: column.category, posts: result.posts }
+            }),
+          )
+          break
+        }
       }
     }),
   )
