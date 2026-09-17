@@ -5,6 +5,7 @@ import {
   eventsTeaserSchema,
   staffGridSchema,
   downloadsListSchema,
+  storiesColumnsSchema,
 } from './references.js'
 
 export * from './richtext.js'
@@ -59,6 +60,7 @@ export const BLOCK_TYPES = [
   'eventsTeaser',
   'staffGrid',
   'downloadsList',
+  'storiesColumns',
 ] as const
 export type BlockType = (typeof BLOCK_TYPES)[number]
 
@@ -102,14 +104,14 @@ export const blockRegistry = {
     label: 'Latest news',
     description: 'Shows the most recent articles. Updates itself as you publish.',
     schema: newsTeaserSchema,
-    defaults: () => ({ heading: 'Latest news', limit: 3, category: null }),
+    defaults: () => ({ heading: 'Latest news', limit: 3, category: null, layout: 'featured' as const }),
   },
   eventsTeaser: {
     type: 'eventsTeaser',
     label: 'Upcoming events',
     description: 'Shows the next events on the calendar. Updates itself.',
     schema: eventsTeaserSchema,
-    defaults: () => ({ heading: 'Upcoming events', limit: 3 }),
+    defaults: () => ({ heading: 'Upcoming events', limit: 3, layout: 'featured' as const }),
   },
   staffGrid: {
     type: 'staffGrid',
@@ -124,6 +126,13 @@ export const blockRegistry = {
     description: 'Shows published files, optionally from one category.',
     schema: downloadsListSchema,
     defaults: () => ({ heading: 'Downloads', category: null }),
+  },
+  storiesColumns: {
+    type: 'storiesColumns',
+    label: 'Stories columns',
+    description: 'Up to three columns, each listing recent articles from one news category.',
+    schema: storiesColumnsSchema,
+    defaults: () => ({ heading: '', columns: [{ title: '', category: '', limit: 3 }] }),
   },
 } satisfies Record<BlockType, BlockDefinition>
 
