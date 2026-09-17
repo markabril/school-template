@@ -5256,6 +5256,7 @@ interface Row {
   label: string
   pageId: string | null
   url: string
+  opensNewTab: boolean
 }
 interface PageOption {
   id: string
@@ -5277,6 +5278,7 @@ const toRow = (item: NavLinkInput, location: Location, depth: 0 | 1): Row => ({
   label: item.label,
   pageId: item.pageId ?? null,
   url: item.url ?? '',
+  opensNewTab: item.opensNewTab ?? false,
 })
 
 function fromTree(tree: NavInputItem[]): Row[] {
@@ -5292,7 +5294,13 @@ function toTree(list: Row[]): NavInputItem[] {
   const out: NavInputItem[] = []
   let parent: NavInputItem | null = null
   for (const r of list) {
-    const link: NavLinkInput = { label: r.label, pageId: r.pageId, url: r.pageId ? null : r.url || null }
+    // opensNewTab is carried through, or every save would silently reset it.
+    const link: NavLinkInput = {
+      label: r.label,
+      pageId: r.pageId,
+      url: r.pageId ? null : r.url || null,
+      opensNewTab: r.opensNewTab,
+    }
     if (r.depth === 1 && parent && parent.location === r.location) {
       parent.children!.push(link)
     } else {
@@ -5352,7 +5360,7 @@ function move(row: Row, delta: -1 | 1) {
 }
 
 function add(location: Location) {
-  const row: Row = { key: crypto.randomUUID(), location, depth: 0, label: '', pageId: null, url: '' }
+  const row: Row = { key: crypto.randomUUID(), location, depth: 0, label: '', pageId: null, url: '', opensNewTab: false }
   // Header rows stay above footer rows so each menu remains contiguous.
   const lastInMenu = rows.value.map((r) => r.location).lastIndexOf(location)
   const at = lastInMenu >= 0 ? lastInMenu + 1 : location === 'header' ? 0 : rows.value.length
@@ -5441,7 +5449,11 @@ const isDraft = (pageId: string | null) => !!pageId && pages.value.find((p) => p
                 class="min-w-0 flex-1 rounded-card border border-hairline px-3 py-2 text-sm"
               />
             </div>
-            <div class="flex flex-wrap gap-1">
+            <div class="flex flex-wrap items-center gap-1">
+              <label class="mr-2 flex items-center gap-1.5 text-xs text-ink-muted">
+                <input v-model="row.opensNewTab" type="checkbox" class="accent-maroon" />
+                New tab
+              </label>
               <UiButton variant="ghost" title="Move up" @click="move(row, -1)">↑</UiButton>
               <UiButton variant="ghost" title="Move down" @click="move(row, 1)">↓</UiButton>
               <UiButton variant="ghost" :disabled="!canIndent(row)" @click="indent(row)">Indent ›</UiButton>
