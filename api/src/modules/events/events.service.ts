@@ -6,6 +6,7 @@ import { badRequest, notFound } from '../../lib/errors.js'
 import { audit } from '../../lib/audit.js'
 import { assertSlugFree, recordSlugChange, type SlugTable } from '../../lib/slugs.js'
 import { revalidate } from '../../lib/revalidate.js'
+import { pathsForBlockTypes } from '../../lib/purge.js'
 
 const TABLE: SlugTable = { entity: 'event', table: events, id: events.id, slug: events.slug }
 
@@ -14,7 +15,9 @@ interface Actor {
   ip?: string | null
 }
 
-const purgePaths = () => ['/events', '/']
+async function purgeEvents(): Promise<void> {
+  revalidate(['/events', ...(await pathsForBlockTypes(['eventsTeaser']))])
+}
 
 export async function listAdmin() {
   return db
@@ -160,7 +163,7 @@ export async function update(
     ip: actor.ip,
   })
 
-  if (after.status === 'published') revalidate(purgePaths())
+  if (after.status === 'published') await purgeEvents()
   return after
 }
 
@@ -184,7 +187,7 @@ export async function setStatus(id: string, status: PublishStatus, actor: Actor)
     ip: actor.ip,
   })
 
-  revalidate(purgePaths())
+  await purgeEvents()
   return after
 }
 
@@ -200,5 +203,5 @@ export async function remove(id: string, actor: Actor) {
     before: { slug: row.slug, title: row.title },
     ip: actor.ip,
   })
-  revalidate(purgePaths())
+  await purgeEvents()
 }

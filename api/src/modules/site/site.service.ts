@@ -21,6 +21,7 @@ import { notFound } from '../../lib/errors.js'
 import { newId } from '../../lib/ids.js'
 import { audit } from '../../lib/audit.js'
 import { revalidate, PURGE_EVERYTHING } from '../../lib/revalidate.js'
+import { pathsForBlockTypes } from '../../lib/purge.js'
 import { toPublic as mediaToPublic } from '../media/media.service.js'
 
 interface Actor {
@@ -326,14 +327,14 @@ export async function upsertStaff(
     ip: actor.ip,
   })
 
-  revalidate(PURGE_EVERYTHING)
+  revalidate(['/staff', ...(await pathsForBlockTypes(['staffGrid']))])
   return row
 }
 
 export async function removeStaff(id: string, actor: Actor) {
   await db.delete(staff).where(eq(staff.id, id))
   audit({ actorUserId: actor.id, action: 'staff.deleted', entity: 'staff', entityId: id, ip: actor.ip })
-  revalidate(PURGE_EVERYTHING)
+  revalidate(['/staff', ...(await pathsForBlockTypes(['staffGrid']))])
 }
 
 /* --------------------------------------------------------------- downloads */
@@ -389,14 +390,14 @@ export async function upsertDownload(
     ip: actor.ip,
   })
 
-  revalidate(PURGE_EVERYTHING)
+  revalidate(['/downloads', ...(await pathsForBlockTypes(['downloadsList']))])
   return row
 }
 
 export async function removeDownload(id: string, actor: Actor) {
   await db.delete(downloads).where(eq(downloads.id, id))
   audit({ actorUserId: actor.id, action: 'download.deleted', entity: 'download', entityId: id, ip: actor.ip })
-  revalidate(PURGE_EVERYTHING)
+  revalidate(['/downloads', ...(await pathsForBlockTypes(['downloadsList']))])
 }
 
 /* ----------------------------------------------------------- announcements */
