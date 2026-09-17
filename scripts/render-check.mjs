@@ -88,6 +88,45 @@ check('/history', 'band carries a breadcrumb ending at the current page', (h) =>
 
 check('/', 'homepage (hero first) has no title band', (h) => !h.includes('data-page-header'))
 
+// ---- Task 12: homepage blocks ----------------------------------------------
+
+check('/', 'hero uses the gold pill for its primary button', (h) =>
+  /class="[^"]*btn-gold[^"]*"[^>]*>\s*Enrol for 2026/.test(between(h, 'data-block="hero"', '</section>')),
+)
+
+check('/', 'news block uses the featured layout: one large, two standard', (h) => {
+  const s = between(h, 'data-block="newsTeaser"', 'data-block="eventsTeaser"')
+  return (
+    s.startsWith('data-block="newsTeaser" data-layout="featured"') &&
+    count(s, /data-news-card="large"/) === 1 &&
+    count(s, /data-news-card="standard"/) === 2 &&
+    s.includes('href="/news"')
+  )
+})
+
+check('/', 'events block uses the featured layout with date badges', (h) => {
+  const s = between(h, 'data-block="eventsTeaser"', 'data-block="storiesColumns"')
+  return (
+    s.startsWith('data-block="eventsTeaser" data-layout="featured"') &&
+    count(s, /data-date-badge/) >= 4 &&
+    s.includes('Foundation Day') &&
+    s.includes('href="/events"')
+  )
+})
+
+check('/', 'stories columns show three categories with compact cards', (h) => {
+  const s = between(h, 'data-block="storiesColumns"', 'data-site-footer')
+  return (
+    count(s, /data-stories-column/) === 3 &&
+    new RegExp(`Principal${APOS}s Corner`).test(s) &&
+    s.includes('Student Life') &&
+    s.includes('Community') &&
+    count(s, /data-news-card="compact"/) >= 6 &&
+    // vue-router may encode the space in a query value as %20 or as +.
+    /href="\/news\?category=Student(?:%20|\+)Life"/.test(s)
+  )
+})
+
 // ---- end of checks — later tasks add sections above this line ---------------
 
 let failed = 0
