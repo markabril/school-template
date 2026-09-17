@@ -3304,8 +3304,13 @@ function onPanelKeydown(e: KeyboardEvent, id: string) {
   }
 }
 
+// Close when focus leaves the open item (its trigger and panel), not just the
+// whole nav: tabbing from the last link onto the next top-level link must shut
+// the panel, or it stays open over the page.
 function onFocusOut(e: FocusEvent) {
-  if (!root.value?.contains(e.relatedTarget as Node | null)) close()
+  if (!openId.value) return
+  const item = root.value?.querySelector(`#nav-panel-${openId.value}`)?.closest('li.relative')
+  if (!item?.contains(e.relatedTarget as Node | null)) close()
 }
 
 function onDocumentClick(e: MouseEvent) {

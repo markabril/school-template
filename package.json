@@ -25,7 +25,8 @@
     "create-admin": "npm run create-admin --workspace=api",
     "audit:a11y": "node scripts/a11y-audit.mjs",
     "test": "npm run test --workspaces --if-present",
-    "seed:demo": "npm run seed:demo --workspace=api --"
+    "seed:demo": "npm run seed:demo --workspace=api --",
+    "check:render": "node scripts/render-check.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
