@@ -1,73 +1,93 @@
 <script setup lang="ts">
-import type { MediaItem } from '~/composables/useMedia'
+import type { PostSummary } from '~/types/content'
 
-interface PostSummary {
-  id: string
-  slug: string
-  title: string
-  excerpt: string
-  category: string | null
-  publishedAt: string
-  cover: MediaItem | null
+// Re-create the page when the query changes, so category and page links fetch
+// fresh data instead of reusing the previous result.
+definePageMeta({ key: (route) => route.fullPath })
+
+const PER_PAGE = 12
+const route = useRoute()
+
+const category = typeof route.query.category === 'string' && route.query.category ? route.query.category : null
+const page = Math.max(1, Number.parseInt(String(route.query.page ?? '1'), 10) || 1)
+
+const params = new URLSearchParams({ limit: String(PER_PAGE), offset: String((page - 1) * PER_PAGE) })
+if (category) params.set('category', category)
+
+const [{ data }, { data: cats }] = await Promise.all([
+  useApi<{ posts: PostSummary[]; total: number }>(`/content/posts?${params}`),
+  useApi<{ categories: string[] }>('/content/posts/categories'),
+])
+
+const posts = computed(() => data.value?.posts ?? [])
+const showFeatured = computed(() => page === 1 && !category && posts.value.length > 0)
+const gridPosts = computed(() => (showFeatured.value ? posts.value.slice(1) : posts.value))
+const hasOlder = computed(() => page * PER_PAGE < (data.value?.total ?? 0))
+
+function href(opts: { category?: string | null; page?: number }) {
+  const q = new URLSearchParams()
+  if (opts.category) q.set('category', opts.category)
+  if (opts.page && opts.page > 1) q.set('page', String(opts.page))
+  const s = q.toString()
+  return s ? `/news?${s}` : '/news'
 }
 
-const { data } = await useApi<{ posts: PostSummary[]; total: number }>('/content/posts?limit=24')
-
 useSeoMeta({
-  title: 'News',
-  description: 'News and updates from Cherished Moments School.',
+  title: category ? `News — ${category}` : 'News',
+  description: category
+    ? `${category} articles from Cherished Moments School.`
+    : 'News and updates from Cherished Moments School.',
 })
-
-const fmt = (d: string) =>
-  new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
 </script>
 
 <template>
   <div>
     <PageHeader
-      title="News"
+      :title="category ?? 'News'"
       eyebrow="From the school"
-      intro="Announcements, achievements and stories from around the school."
+      :intro="category ? undefined : 'Announcements, achievements and stories from around the school.'"
+      :breadcrumbs="category ? [{ label: 'Home', to: '/' }, { label: 'News', to: '/news' }, { label: category }] : [{ label: 'Home', to: '/' }, { label: 'News' }]"
     />
 
-    <div class="mx-auto max-w-5xl px-6 py-12 sm:py-16">
-    <p v-if="!data?.posts.length" class="text-ink-muted">
-      There is nothing here yet. Please check back soon.
-    </p>
-
-    <ul v-else class="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-      <li v-for="post in data.posts" :key="post.id">
-        <article>
-          <NuxtLink :to="`/news/${post.slug}`" class="group block">
-            <img
-              v-if="post.cover"
-              :src="post.cover.srcset.find((s) => s.width >= 400)?.url ?? post.cover.url"
-              :srcset="srcsetFor(post.cover)"
-              sizes="(min-width: 1024px) 20rem, (min-width: 640px) 45vw, 90vw"
-              :alt="post.cover.alt"
-              :width="post.cover.width ?? undefined"
-              :height="post.cover.height ?? undefined"
-              loading="lazy"
-              class="aspect-[3/2] w-full rounded-card object-cover"
-            />
-            <div v-else class="aspect-[3/2] w-full rounded-card bg-maroon-tint" />
-
-            <p class="mt-4 text-[11px] font-bold uppercase tracking-[0.12em] text-gold-ink">
-              <span v-if="post.category">{{ post.category }} &middot; </span>
-              <time :datetime="post.publishedAt">{{ fmt(post.publishedAt) }}</time>
-            </p>
-            <h2
-              class="mt-2 text-balance font-display text-xl font-semibold leading-snug text-maroon underline-offset-4 group-hover:underline"
+    <div class="mx-auto max-w-6xl px-5 py-12 sm:py-16">
+      <nav aria-label="News categories">
+        <ul class="flex flex-wrap gap-2">
+          <li>
+            <NuxtLink :to="href({})" :aria-current="!category ? 'page' : undefined" class="chip" :class="{ 'chip-active': !category }">
+              All
+            </NuxtLink>
+          </li>
+          <li v-for="c in cats?.categories ?? []" :key="c">
+            <NuxtLink
+              :to="href({ category: c })"
+              :aria-current="category === c ? 'page' : undefined"
+              class="chip"
+              :class="{ 'chip-active': category === c }"
             >
-              {{ post.title }}
-            </h2>
-            <p class="mt-2 line-clamp-3 leading-relaxed text-ink-muted">
-              {{ post.excerpt }}
-            </p>
-          </NuxtLink>
-        </article>
-      </li>
-    </ul>
+              {{ c }}
+            </NuxtLink>
+          </li>
+        </ul>
+      </nav>
+
+      <p v-if="!posts.length" class="mt-10 text-ink-muted">There is nothing here yet. Please check back soon.</p>
+
+      <template v-else>
+        <NewsCard v-if="showFeatured" :post="posts[0]!" variant="large" :heading-level="2" class="mt-10" />
+
+        <ul v-if="gridPosts.length" class="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3" :class="showFeatured ? 'mt-14' : 'mt-10'">
+          <li v-for="p in gridPosts" :key="p.id">
+            <NewsCard :post="p" :heading-level="2" />
+          </li>
+        </ul>
+      </template>
+
+      <!-- Real links, not "Load more": server-rendered, crawlable, shareable. -->
+      <nav v-if="page > 1 || hasOlder" aria-label="Pagination" class="mt-14 flex justify-between gap-4">
+        <NuxtLink v-if="page > 1" :to="href({ category, page: page - 1 })" class="btn-outline">← Newer articles</NuxtLink>
+        <span v-else />
+        <NuxtLink v-if="hasOlder" :to="href({ category, page: page + 1 })" class="btn-outline">Older articles →</NuxtLink>
+      </nav>
     </div>
   </div>
 </template>
