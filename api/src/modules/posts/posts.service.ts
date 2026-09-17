@@ -91,6 +91,27 @@ async function withCovers(rows: Array<typeof posts.$inferSelect>) {
   }))
 }
 
+/** Other live posts in the same category, for "More from …" beneath an article. */
+async function relatedPosts(post: { id: string; category: string | null }, limit = 3) {
+  if (!post.category) return []
+
+  const rows = await db
+    .select()
+    .from(posts)
+    .where(
+      and(
+        eq(posts.status, 'published'),
+        lte(posts.publishedAt, new Date()),
+        eq(posts.category, post.category),
+        ne(posts.id, post.id),
+      ),
+    )
+    .orderBy(desc(posts.publishedAt))
+    .limit(limit)
+
+  return withCovers(rows)
+}
+
 export async function getPublicBySlug(slug: string) {
   const row = await db
     .select()
@@ -126,6 +147,7 @@ export async function getPublicBySlug(slug: string) {
       seo: row.seo,
       cover,
     },
+    related: await relatedPosts(row),
   }
 }
 

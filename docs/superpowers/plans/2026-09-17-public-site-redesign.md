@@ -1716,7 +1716,7 @@ describe('posts', () => {
 
     const result = await posts.getPublicBySlug('main')
 
-    expect('related' in result && result.related.map((r) => r.slug)).toEqual(['sl-2', 'sl-3', 'sl-4'])
+    expect(result.related?.map((r) => r.slug)).toEqual(['sl-2', 'sl-3', 'sl-4'])
   })
 
   it('returns no related posts for an uncategorised article', async () => {
@@ -1725,7 +1725,7 @@ describe('posts', () => {
 
     const result = await posts.getPublicBySlug('lonely')
 
-    expect('related' in result && result.related).toEqual([])
+    expect(result.related).toEqual([])
   })
 
   it('pages through the public list with limit and offset', async () => {
