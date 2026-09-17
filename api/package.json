@@ -13,7 +13,8 @@
     "db:reset": "node -e \"require('fs').rmSync('data/school.db',{force:true})\" && npm run migrate && npm run seed",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "create-admin": "tsx src/scripts/create-admin.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed:demo": "tsx src/scripts/seed-demo.ts"
   },
   "dependencies": {
     "@cms/shared": "*",
