@@ -63,12 +63,17 @@ useSeoMeta({
           the vector source arrives — docs/design-system.md §5.
         -->
         <NuxtLink to="/" class="flex min-w-0 flex-col leading-none">
-          <span class="truncate font-display text-xl font-semibold text-cream sm:text-2xl">
+          <!--
+            The name wraps rather than truncating: between the phone and the
+            desktop menu there is not room for it on one line, and a school's
+            own name cut to "Cherished Moments S…" is worse than two lines.
+          -->
+          <span class="font-display text-lg font-semibold leading-tight text-cream sm:text-xl lg:text-2xl">
             {{ settings?.['site.name'] ?? 'Cherished Moments School' }}
           </span>
           <span
             v-if="settings?.['site.tagline']"
-            class="mt-1.5 hidden truncate text-[10px] font-bold uppercase tracking-[0.16em] text-gold-light sm:block"
+            class="mt-1.5 hidden truncate text-[10px] font-bold uppercase tracking-[0.16em] text-gold-light lg:block"
           >
             {{ settings['site.tagline'] }}
           </span>

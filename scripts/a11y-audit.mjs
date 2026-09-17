@@ -4,7 +4,18 @@
  * that are objectively checkable and easy to regress.
  */
 const BASE = 'http://127.0.0.1:3100'
-const PAGES = ['/', '/news', '/events', '/staff', '/downloads', '/contact']
+const PAGES = [
+  '/',
+  '/news',
+  '/news?category=Student%20Life',
+  '/news/grade-5-science-fair-2026',
+  '/events',
+  '/staff',
+  '/downloads',
+  '/contact',
+  '/history',
+  '/mission-and-vision',
+]
 
 let problems = 0
 const report = (page, level, msg) => {
