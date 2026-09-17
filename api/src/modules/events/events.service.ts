@@ -1,12 +1,13 @@
-import { and, asc, desc, eq, gte, lte } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, lte } from 'drizzle-orm'
 import { richTextDocSchema, slugSchema, type PublishStatus } from '@cms/shared'
 import { db } from '../../db/client.js'
-import { events } from '../../db/schema/index.js'
+import { events, media } from '../../db/schema/index.js'
 import { badRequest, notFound } from '../../lib/errors.js'
 import { audit } from '../../lib/audit.js'
 import { assertSlugFree, recordSlugChange, type SlugTable } from '../../lib/slugs.js'
 import { revalidate } from '../../lib/revalidate.js'
 import { pathsForBlockTypes } from '../../lib/purge.js'
+import { toPublic as mediaToPublic } from '../media/media.service.js'
 
 const TABLE: SlugTable = { entity: 'event', table: events, id: events.id, slug: events.slug }
 
@@ -57,7 +58,13 @@ export async function listPublic(limit = 20, includePast = false) {
     ? rows
     : rows.filter((e) => (e.endsAt ?? e.startsAt) >= now)
 
-  return filtered.slice(0, limit).map((e) => ({
+  const page = filtered.slice(0, limit)
+  const coverIds = [...new Set(page.map((e) => e.coverMediaId).filter((v): v is string => !!v))]
+  const covers = coverIds.length
+    ? (await db.select().from(media).where(inArray(media.id, coverIds))).map(mediaToPublic)
+    : []
+
+  return page.map((e) => ({
     id: e.id,
     slug: e.slug,
     title: e.title,
@@ -66,6 +73,7 @@ export async function listPublic(limit = 20, includePast = false) {
     allDay: e.allDay,
     location: e.location,
     description: e.description,
+    cover: covers.find((c) => c.id === e.coverMediaId) ?? null,
   }))
 }
 
@@ -114,6 +122,7 @@ export async function update(
     allDay?: boolean
     location?: string | null
     description?: unknown
+    coverMediaId?: string | null
   },
   actor: Actor,
 ) {
@@ -147,6 +156,7 @@ export async function update(
       endsAt,
       ...(patch.allDay !== undefined ? { allDay: patch.allDay } : {}),
       ...(patch.location !== undefined ? { location: patch.location } : {}),
+      ...(patch.coverMediaId !== undefined ? { coverMediaId: patch.coverMediaId } : {}),
       ...(patch.description !== undefined ? { description: patch.description as object } : {}),
     })
     .where(eq(events.id, id))
