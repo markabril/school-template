@@ -21,3 +21,9 @@ api/data/mail/
 *.log
 .DS_Store
 Thumbs.db
+
+# Test run media (created and removed by the API test suite)
+api/test/.tmp-media/
+
+# Stock photos for `npm run seed:demo` — licensed for use, never committed
+api/data/demo-images/

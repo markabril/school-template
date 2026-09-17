@@ -290,7 +290,7 @@ describe('getSettings', () => {
 
     const settings = await getSettings()
 
-    expect(settings).not.toHaveProperty('demo.manifest')
+    expect(settings).not.toHaveProperty(['demo.manifest'])
     expect(settings['site.name']).toBe('Stored Name')
   })
 
@@ -2246,7 +2246,7 @@ describe('seed:demo', { timeout: 60_000 }, () => {
     await seedDemo({ imagesDir })
 
     expect(await readManifest()).not.toBeNull()
-    expect(await getSettings()).not.toHaveProperty('demo.manifest')
+    expect(await getSettings()).not.toHaveProperty(['demo.manifest'])
     await expect(seedDemo({ imagesDir })).rejects.toThrow(/already seeded/)
   })
 

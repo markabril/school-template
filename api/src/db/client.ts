@@ -6,8 +6,11 @@ import { env } from '../env.js'
 import { logger } from '../lib/logger.js'
 import * as schema from './schema/index.js'
 
-const dbPath = path.resolve(env.DATABASE_PATH)
-mkdirSync(path.dirname(dbPath), { recursive: true })
+// `:memory:` is a SQLite sentinel, not a path — resolving it would produce a
+// file literally named ":memory:", which is also invalid on Windows.
+const isMemory = env.DATABASE_PATH === ':memory:'
+const dbPath = isMemory ? ':memory:' : path.resolve(env.DATABASE_PATH)
+if (!isMemory) mkdirSync(path.dirname(dbPath), { recursive: true })
 
 export const sqlite = new Database(dbPath)
 

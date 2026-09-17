@@ -30,7 +30,10 @@ interface Actor {
 
 export async function getSettings(): Promise<SiteSettings> {
   const rows = await db.select().from(siteSettings)
-  const stored = Object.fromEntries(rows.map((r) => [r.key, r.value]))
+  // Only declared keys. The table also holds internal bookkeeping such as the
+  // demo manifest, and this object is served publicly.
+  const known = new Set(Object.keys(DEFAULT_SETTINGS))
+  const stored = Object.fromEntries(rows.filter((r) => known.has(r.key)).map((r) => [r.key, r.value]))
   // Defaults fill any gap, so a missing row can never render the site blank.
   return { ...DEFAULT_SETTINGS, ...stored } as SiteSettings
 }
