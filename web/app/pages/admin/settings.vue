@@ -66,7 +66,11 @@ async function save() {
 
         <div class="mt-3 space-y-4">
           <template v-for="f in SETTING_FIELDS.filter((x) => x.group === group)" :key="f.key">
-            <div v-if="f.multiline">
+            <div v-if="f.type === 'media'">
+              <AdminMediaPicker :model-value="form[f.key] || null" :label="f.label" @update:model-value="form[f.key] = $event ?? ''" />
+              <p v-if="f.hint" class="mt-1.5 text-xs text-ink-muted">{{ f.hint }}</p>
+            </div>
+            <div v-else-if="f.multiline">
               <label :for="f.key" class="block text-sm font-semibold text-ink">{{ f.label }}</label>
               <textarea
                 :id="f.key"

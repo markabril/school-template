@@ -171,6 +171,21 @@ check('/contact', 'contact details sit in a maroon panel beside the form', (h) =
   /data-contact-panel[^>]*class="[^"]*bg-maroon/.test(h) && h.includes('(02) 8123 4567') && h.includes('Your name'),
 )
 
+// ---- Logo in the header ----------------------------------------------------
+
+// Holds whether or not a logo is set: the school name is always in the header
+// markup, and a logo, when present, is decorative with the name kept for
+// screen readers at phone widths.
+check('/', 'header carries the school name, and any logo is decorative', (h) => {
+  // The wordmark link is the only <img> in the header. NuxtLink emits its own
+  // attributes before href, so match on the link class rather than on "<a href".
+  const header = between(h, 'data-site-header', '</header>')
+  if (!header.includes('Cherished Moments School')) return false
+  if (!/<img/.test(header)) return true
+  // Vue serialises an empty alt as a bare `alt` attribute, not alt="".
+  return /<img[^>]*\salt(=""|[\s>])/.test(header) && header.includes('sr-only md:not-sr-only')
+})
+
 // ---- end of checks — later tasks add sections above this line ---------------
 
 let failed = 0

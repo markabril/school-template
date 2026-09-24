@@ -2,6 +2,7 @@
 const { data: chrome } = await useChrome()
 
 const settings = computed(() => chrome.value?.settings)
+const logo = computed(() => chrome.value?.logo ?? null)
 const headerNav = computed(() => chrome.value?.nav.header ?? [])
 const footerNav = computed(() => chrome.value?.nav.footer ?? [])
 
@@ -62,20 +63,40 @@ useSeoMeta({
           Wordmark for now. This is the slot for the simplified crest mark once
           the vector source arrives — docs/design-system.md §5.
         -->
-        <NuxtLink to="/" class="flex min-w-0 flex-col leading-none">
+        <NuxtLink to="/" class="flex min-w-0 items-center gap-3">
           <!--
-            The name wraps rather than truncating: between the phone and the
-            desktop menu there is not room for it on one line, and a school's
-            own name cut to "Cherished Moments S…" is worse than two lines.
+            Decorative: the school name sits beside it as real text, and a
+            screen reader announcing both would read the school twice.
           -->
-          <span class="font-display text-lg font-semibold leading-tight text-cream sm:text-xl lg:text-2xl">
-            {{ settings?.['site.name'] ?? 'Cherished Moments School' }}
-          </span>
-          <span
-            v-if="settings?.['site.tagline']"
-            class="mt-1.5 hidden truncate text-[10px] font-bold uppercase tracking-[0.16em] text-gold-light lg:block"
-          >
-            {{ settings['site.tagline'] }}
+          <img
+            v-if="logo"
+            :src="logo.srcset.find((s) => s.width >= 160)?.url ?? logo.url"
+            alt=""
+            :width="logo.width ?? undefined"
+            :height="logo.height ?? undefined"
+            class="h-9 w-auto shrink-0 object-contain md:h-10"
+          />
+
+          <span class="flex min-w-0 flex-col leading-none">
+            <!--
+              With a logo the name is hidden on phones but stays in the markup:
+              `sr-only` keeps it in the accessibility tree, so the link still
+              has a name. `hidden` would leave a link with nothing to announce.
+              The name wraps rather than truncating — a school's own name cut
+              to "Cherished Moments S…" is worse than two lines.
+            -->
+            <span
+              class="font-display text-lg font-semibold leading-tight text-cream sm:text-xl lg:text-2xl"
+              :class="logo ? 'sr-only md:not-sr-only' : ''"
+            >
+              {{ settings?.['site.name'] ?? 'Cherished Moments School' }}
+            </span>
+            <span
+              v-if="settings?.['site.tagline']"
+              class="mt-1.5 hidden truncate text-[10px] font-bold uppercase tracking-[0.16em] text-gold-light lg:block"
+            >
+              {{ settings['site.tagline'] }}
+            </span>
           </span>
         </NuxtLink>
 

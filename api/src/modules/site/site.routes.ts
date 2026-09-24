@@ -13,12 +13,7 @@ export const publicSiteRoutes = Router()
 /** Everything the site chrome needs, in one request. */
 publicSiteRoutes.get('/chrome', async (_req, res, next) => {
   try {
-    const [settings, nav, announcements] = await Promise.all([
-      service.getSettings(),
-      service.publicNavigation(),
-      service.activeAnnouncements(),
-    ])
-    res.json({ settings, nav, announcements })
+    res.json(await service.publicChrome())
   } catch (err) {
     next(err)
   }

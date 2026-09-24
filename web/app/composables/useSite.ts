@@ -1,4 +1,5 @@
 import type { SiteSettings } from '@cms/shared'
+import type { MediaItem } from '~/composables/useMedia'
 
 export interface NavLink {
   id: string
@@ -20,6 +21,8 @@ export interface Chrome {
   settings: SiteSettings
   nav: { header: NavItem[]; footer: NavItem[] }
   announcements: Array<{ id: string; title: string; body: unknown }>
+  /** The header logo, already resolved from its media id. Null when unset. */
+  logo: MediaItem | null
 }
 
 /**

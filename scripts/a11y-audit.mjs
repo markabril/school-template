@@ -39,8 +39,13 @@ function tags(html, name) {
 }
 
 function attr(tag, name) {
-  const m = tag.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i'))
-  return m ? m[1] : null
+  // Anchored on whitespace, or `data-alt="…"` would be read as `alt`.
+  const m = tag.match(new RegExp(`\\s${name}\\s*=\\s*"([^"]*)"`, 'i'))
+  if (m) return m[1]
+  // A valueless attribute is an empty value, not a missing one — Vue renders
+  // alt="" that way, and `<img alt>` is a correctly marked decorative image
+  // rather than one with no alt at all.
+  return new RegExp(`\\s${name}(\\s|>|$)`, 'i').test(tag) ? '' : null
 }
 
 for (const path of PAGES) {

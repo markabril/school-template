@@ -400,6 +400,40 @@ export async function removeDownload(id: string, actor: Actor) {
   revalidate(['/downloads', ...(await pathsForBlockTypes(['downloadsList']))])
 }
 
+/* ------------------------------------------------------------------ chrome */
+
+/**
+ * Everything the site chrome needs, in one query set.
+ *
+ * The logo is stored as a media id and resolved here, so the header never has
+ * to fetch it separately and a logo deleted from the library degrades to the
+ * wordmark rather than a broken image on every page.
+ */
+export async function publicChrome() {
+  const [settings, nav, announcementRows] = await Promise.all([
+    getSettings(),
+    publicNavigation(),
+    activeAnnouncements(),
+  ])
+
+  const logoId = settings['site.logoMediaId']
+  const logoRow = logoId
+    ? await db
+        .select()
+        .from(media)
+        .where(eq(media.id, logoId))
+        .limit(1)
+        .then((r) => r[0])
+    : undefined
+
+  return {
+    settings,
+    nav,
+    announcements: announcementRows,
+    logo: logoRow ? mediaToPublic(logoRow) : null,
+  }
+}
+
 /* ----------------------------------------------------------- announcements */
 
 export async function listAnnouncements() {
