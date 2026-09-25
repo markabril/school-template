@@ -6,6 +6,7 @@ import { badRequest, notFound } from '../../lib/errors.js'
 import { audit } from '../../lib/audit.js'
 import { assertSlugFree, recordSlugChange, resolveOldSlug, type SlugTable } from '../../lib/slugs.js'
 import { revalidate } from '../../lib/revalidate.js'
+import { pathsForBlockTypes } from '../../lib/purge.js'
 import { toPublic as mediaToPublic } from '../media/media.service.js'
 
 const TABLE: SlugTable = { entity: 'post', table: posts, id: posts.id, slug: posts.slug }
@@ -15,9 +16,13 @@ interface Actor {
   ip?: string | null
 }
 
-/** A post publishing changes the post, the index, and the homepage teaser. */
-function purgePaths(slug: string): string[] {
-  return [`/news/${slug}`, '/news', '/']
+/** A post changes itself, the index, and every page showing news blocks. */
+async function purgePost(...slugs: string[]): Promise<void> {
+  revalidate([
+    ...slugs.map((s) => `/news/${s}`),
+    '/news',
+    ...(await pathsForBlockTypes(['newsTeaser', 'storiesColumns'])),
+  ])
 }
 
 export async function listAdmin() {
@@ -86,6 +91,27 @@ async function withCovers(rows: Array<typeof posts.$inferSelect>) {
   }))
 }
 
+/** Other live posts in the same category, for "More from …" beneath an article. */
+async function relatedPosts(post: { id: string; category: string | null }, limit = 3) {
+  if (!post.category) return []
+
+  const rows = await db
+    .select()
+    .from(posts)
+    .where(
+      and(
+        eq(posts.status, 'published'),
+        lte(posts.publishedAt, new Date()),
+        eq(posts.category, post.category),
+        ne(posts.id, post.id),
+      ),
+    )
+    .orderBy(desc(posts.publishedAt))
+    .limit(limit)
+
+  return withCovers(rows)
+}
+
 export async function getPublicBySlug(slug: string) {
   const row = await db
     .select()
@@ -121,6 +147,7 @@ export async function getPublicBySlug(slug: string) {
       seo: row.seo,
       cover,
     },
+    related: await relatedPosts(row),
   }
 }
 
@@ -228,7 +255,7 @@ export async function update(
   })
 
   if (after.status === 'published') {
-    revalidate([...purgePaths(after.slug), ...(before.slug !== after.slug ? purgePaths(before.slug) : [])])
+    await purgePost(...new Set([after.slug, before.slug]))
   }
 
   return after
@@ -272,7 +299,7 @@ export async function setStatus(
     ip: actor.ip,
   })
 
-  revalidate(purgePaths(after.slug))
+  await purgePost(after.slug)
   return after
 }
 
@@ -295,7 +322,7 @@ export async function remove(id: string, actor: Actor) {
     before: { slug: row.slug, title: row.title },
     ip: actor.ip,
   })
-  revalidate(purgePaths(row.slug))
+  await purgePost(row.slug)
 }
 
 /** Distinct categories in use, for the admin dropdown and public filters. */

@@ -11,6 +11,8 @@ const props = defineProps<{
   showLimit?: boolean
   /** Options for the filter dropdown, discovered from existing content. */
   options?: string[]
+  /** Layout choices; omitted for blocks with a single layout. */
+  layouts?: Array<{ value: string; label: string; hint: string }>
   note: string
 }>()
 
@@ -25,6 +27,7 @@ function field<T>(key: string) {
 
 const heading = field<string>('heading')
 const limit = field<number>('limit')
+const layout = field<string>('layout')
 const filterKey = computed(() => (props.filter === 'department' ? 'department' : 'category'))
 const filterValue = computed({
   get: () => (model.value[filterKey.value] as string | null) ?? '',
@@ -35,6 +38,19 @@ const filterValue = computed({
 <template>
   <div class="space-y-4">
     <UiField v-model="heading" label="Heading" hint="Leave empty for no heading." />
+
+    <fieldset v-if="layouts?.length">
+      <legend class="mb-1.5 text-sm font-semibold text-ink">Layout</legend>
+      <div class="space-y-2">
+        <label v-for="l in layouts" :key="l.value" class="flex items-start gap-2 text-sm">
+          <input v-model="layout" type="radio" :value="l.value" class="mt-1 accent-maroon" />
+          <span>
+            <span class="font-medium text-ink">{{ l.label }}</span>
+            <span class="block text-xs text-ink-muted">{{ l.hint }}</span>
+          </span>
+        </label>
+      </div>
+    </fieldset>
 
     <div v-if="showLimit">
       <label for="limit" class="block text-sm font-semibold text-ink">How many to show</label>

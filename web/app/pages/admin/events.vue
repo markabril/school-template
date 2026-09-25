@@ -23,6 +23,87 @@ const creating = ref(false)
 const pending = ref(false)
 const draft = reactive({ title: '', startsAt: '', location: '' })
 
+interface EventDetail extends EventRow {
+  description: import('@cms/shared').RichTextDoc | null
+  coverMediaId: string | null
+}
+
+const editing = ref<{
+  id: string
+  title: string
+  startsAt: string
+  endsAt: string
+  allDay: boolean
+  location: string
+  description: import('@cms/shared').RichTextDoc
+  coverMediaId: string | null
+} | null>(null)
+const saving = ref(false)
+
+/** `datetime-local` wants local wall-clock time with no zone or seconds. */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+async function startEdit(e: EventRow) {
+  error.value = ''
+  try {
+    const { event } = await $fetch<{ event: EventDetail }>(`/api/events/${e.id}`, { credentials: 'include' })
+    editing.value = {
+      id: event.id,
+      title: event.title,
+      startsAt: toLocalInput(event.startsAt),
+      endsAt: toLocalInput(event.endsAt),
+      allDay: event.allDay,
+      location: event.location ?? '',
+      description: event.description ?? { type: 'doc', content: [] },
+      coverMediaId: event.coverMediaId,
+    }
+  } catch (err) {
+    error.value = apiErrorMessage(err, 'Could not load that event.')
+  }
+}
+
+async function saveEdit() {
+  if (!editing.value) return
+  error.value = ''
+  saving.value = true
+  try {
+    await $fetch(`/api/events/${editing.value.id}`, {
+      method: 'PATCH',
+      body: {
+        title: editing.value.title,
+        startsAt: new Date(editing.value.startsAt).toISOString(),
+        endsAt: editing.value.endsAt ? new Date(editing.value.endsAt).toISOString() : null,
+        allDay: editing.value.allDay,
+        location: editing.value.location || null,
+        description: editing.value.description,
+        coverMediaId: editing.value.coverMediaId,
+      },
+      credentials: 'include',
+    })
+    editing.value = null
+    notice.value = 'Event saved.'
+    await load()
+  } catch (err) {
+    error.value = apiErrorMessage(err, 'Could not save the event.')
+  } finally {
+    saving.value = false
+  }
+}
+
+const coverId = computed({
+  get: () => editing.value?.coverMediaId ?? null,
+  set: (v: string | null) => editing.value && (editing.value.coverMediaId = v),
+})
+const description = computed({
+  get: () => editing.value!.description,
+  set: (v) => editing.value && (editing.value.description = v),
+})
+
 async function load() {
   try {
     rows.value = (await $fetch<{ events: EventRow[] }>('/api/events', { credentials: 'include' })).events
@@ -143,6 +224,58 @@ const isPast = (e: EventRow) => new Date(e.endsAt ?? e.startsAt) < new Date()
       </div>
     </form>
 
+    <form
+      v-if="editing"
+      class="mt-6 space-y-4 rounded-card border border-hairline bg-white p-5"
+      @submit.prevent="saveEdit"
+    >
+      <h2 class="text-sm font-bold uppercase tracking-wider text-ink-muted">Edit event</h2>
+
+      <UiField v-model="editing.title" label="Title" required />
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="edit-starts" class="block text-sm font-semibold text-ink">Starts</label>
+          <input
+            id="edit-starts"
+            v-model="editing.startsAt"
+            type="datetime-local"
+            required
+            class="mt-1.5 w-full rounded-card border border-hairline px-3 py-2.5 text-base"
+          />
+        </div>
+        <div>
+          <label for="edit-ends" class="block text-sm font-semibold text-ink">Ends</label>
+          <input
+            id="edit-ends"
+            v-model="editing.endsAt"
+            type="datetime-local"
+            class="mt-1.5 w-full rounded-card border border-hairline px-3 py-2.5 text-base"
+          />
+          <p class="mt-1.5 text-xs text-ink-muted">Optional. Events stay listed until they end.</p>
+        </div>
+      </div>
+
+      <label class="flex items-center gap-2 text-sm">
+        <input v-model="editing.allDay" type="checkbox" class="accent-maroon" />
+        All day
+      </label>
+
+      <UiField v-model="editing.location" label="Location" hint="Optional." />
+
+      <AdminMediaPicker v-model="coverId" label="Picture" />
+      <p class="text-xs text-ink-muted">
+        Shown when this is the next event on the homepage. Without one, a large date is shown instead.
+      </p>
+
+      <AdminRichTextInput v-model="description" label="Description" />
+
+      <div class="flex gap-2">
+        <UiButton type="submit" :loading="saving">Save event</UiButton>
+        <UiButton variant="ghost" @click="editing = null">Cancel</UiButton>
+      </div>
+    </form>
+
     <p v-if="!rows.length" class="mt-8 rounded-card border border-dashed border-hairline p-8 text-center text-sm text-ink-muted">
       No events yet.
     </p>
@@ -169,6 +302,7 @@ const isPast = (e: EventRow) => new Date(e.endsAt ?? e.startsAt) < new Date()
         >
           {{ e.status }}
         </span>
+        <UiButton variant="secondary" @click="startEdit(e)">Edit</UiButton>
         <UiButton variant="secondary" :loading="busyId === e.id" @click="toggle(e)">
           {{ e.status === 'published' ? 'Unpublish' : 'Publish' }}
         </UiButton>

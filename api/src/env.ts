@@ -12,9 +12,11 @@ const schema = z.object({
   // dev servers on those, and on Windows the collision is silent (see index.ts).
   PORT: z.coerce.number().int().positive().default(4100),
   HOST: z.string().default('127.0.0.1'),
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
   DATABASE_PATH: z.string().default('./data/school.db'),
+  // Where uploaded files live. Tests point this at a throwaway directory.
+  MEDIA_DIR: z.string().default('./data/media'),
   PUBLIC_ORIGIN: z.string().url().default('http://localhost:3000'),
 
   REVALIDATE_SECRET: z.string().min(8),

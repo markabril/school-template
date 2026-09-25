@@ -17,6 +17,34 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
  * If the API ever needs to serve a different origin, replace this — do not
  * simply widen the allowlist.
  */
+/**
+ * Origins this API accepts.
+ *
+ * In development the same server answers on `localhost` and `127.0.0.1`, which
+ * are different origins to a browser. Someone who opens the spelling that
+ * PUBLIC_ORIGIN does not name can read the site but cannot sign in, and the
+ * only symptom is "Cross-origin request refused". Both loopback spellings are
+ * accepted in development, on the configured port only.
+ *
+ * Production stays exactly as strict: one configured origin, nothing else.
+ */
+const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]']
+
+function allowedOrigins(): Set<string> {
+  const configured = new URL(env.PUBLIC_ORIGIN)
+  const allowed = new Set([configured.origin])
+
+  if (!isProd && LOOPBACK_HOSTS.includes(configured.hostname)) {
+    for (const host of LOOPBACK_HOSTS) {
+      allowed.add(`${configured.protocol}//${host}${configured.port ? `:${configured.port}` : ''}`)
+    }
+  }
+
+  return allowed
+}
+
+const ALLOWED = allowedOrigins()
+
 export const csrfGuard: RequestHandler = (req, _res, next) => {
   if (SAFE_METHODS.has(req.method)) return next()
 
@@ -39,7 +67,7 @@ export const csrfGuard: RequestHandler = (req, _res, next) => {
     return next(forbidden('Bad origin'))
   }
 
-  if (host !== new URL(env.PUBLIC_ORIGIN).origin) {
+  if (!ALLOWED.has(host)) {
     return next(forbidden('Cross-origin request refused'))
   }
 

@@ -65,6 +65,7 @@ eventRoutes.patch('/:id', async (req, res, next) => {
         endsAt: z.coerce.date().nullable().optional(),
         allDay: z.boolean().optional(),
         location: z.string().max(200).nullable().optional(),
+        coverMediaId: z.string().nullable().optional(),
         description: z.unknown().optional(),
       })
       .parse(req.body)

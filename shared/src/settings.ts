@@ -13,6 +13,8 @@ export const settingsSchema = z.object({
   'site.tagline': z.string().max(160),
   'site.description': z.string().max(300),
   'site.foundedYear': z.coerce.number().int().min(1800).max(2100),
+  /** Media library id, resolved to a URL by the chrome endpoint. Empty = none. */
+  'site.logoMediaId': z.string().max(40),
   'contact.email': z.union([z.string().email(), z.literal('')]),
   'contact.phone': z.string().max(60),
   'contact.address': z.string().max(300),
@@ -29,6 +31,8 @@ export interface SettingField {
   hint?: string
   group: 'Site' | 'Contact' | 'Social'
   multiline?: boolean
+  /** `media` renders the media picker instead of a text box. */
+  type?: 'text' | 'media'
 }
 
 /** Drives the admin settings form. Order here is the order on screen. */
@@ -43,6 +47,13 @@ export const SETTING_FIELDS: SettingField[] = [
     multiline: true,
   },
   { key: 'site.foundedYear', label: 'Year founded', group: 'Site' },
+  {
+    key: 'site.logoMediaId',
+    label: 'Logo',
+    hint: 'Shown in the header beside the school name, and on its own on phones.',
+    group: 'Site',
+    type: 'media',
+  },
   { key: 'contact.email', label: 'Email address', group: 'Contact' },
   { key: 'contact.phone', label: 'Telephone', group: 'Contact' },
   { key: 'contact.address', label: 'Address', group: 'Contact', multiline: true },
@@ -60,6 +71,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   'site.tagline': 'I Think. I Lead. I Care.',
   'site.description': '',
   'site.foundedYear': 1990,
+  'site.logoMediaId': '',
   'contact.email': '',
   'contact.phone': '',
   'contact.address': '',

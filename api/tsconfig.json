@@ -19,6 +19,6 @@
     "sourceMap": true,
     "declaration": false
   },
-  "include": ["src/**/*.ts", "drizzle.config.ts", "../shared/src/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "drizzle.config.ts", "vitest.config.ts", "../shared/src/**/*.ts"],
   "exclude": ["node_modules", "dist", "../**/node_modules"]
 }

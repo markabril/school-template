@@ -8,6 +8,7 @@ import BlockNewsTeaser from '~/components/blocks/BlockNewsTeaser.vue'
 import BlockEventsTeaser from '~/components/blocks/BlockEventsTeaser.vue'
 import BlockStaffGrid from '~/components/blocks/BlockStaffGrid.vue'
 import BlockDownloadsList from '~/components/blocks/BlockDownloadsList.vue'
+import BlockStoriesColumns from '~/components/blocks/BlockStoriesColumns.vue'
 
 /**
  * Maps a stored block type to its public component — the counterpart to the
@@ -37,6 +38,7 @@ const COMPONENTS: Record<string, Component> = {
   eventsTeaser: BlockEventsTeaser,
   staffGrid: BlockStaffGrid,
   downloadsList: BlockDownloadsList,
+  storiesColumns: BlockStoriesColumns,
 }
 </script>
 

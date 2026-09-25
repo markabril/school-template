@@ -47,6 +47,14 @@ useSeoMeta({
 </script>
 
 <template>
-  <!-- The skip link and <main> come from layouts/default.vue. -->
-  <BlockRenderer v-if="data" :blocks="data.blocks" :media="data.media" :refs="data.refs" />
+  <div v-if="data">
+    <!-- Pages that do not open with a Hero get a title automatically, so an
+         editor cannot publish a page with no heading. -->
+    <PageHeader
+      v-if="data.blocks[0]?.type !== 'hero'"
+      :title="data.page.title"
+      :breadcrumbs="[{ label: 'Home', to: '/' }, { label: data.page.title }]"
+    />
+    <BlockRenderer :blocks="data.blocks" :media="data.media" :refs="data.refs" />
+  </div>
 </template>

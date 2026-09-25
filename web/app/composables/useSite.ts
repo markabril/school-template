@@ -1,17 +1,28 @@
 import type { SiteSettings } from '@cms/shared'
+import type { MediaItem } from '~/composables/useMedia'
 
-export interface NavItem {
+export interface NavLink {
   id: string
   label: string
   href: string
   opensNewTab: boolean
-  children?: NavItem[]
+}
+
+export interface NavItem {
+  id: string
+  label: string
+  /** Null when the item opens a dropdown rather than navigating. */
+  href: string | null
+  opensNewTab: boolean
+  children: NavLink[]
 }
 
 export interface Chrome {
   settings: SiteSettings
   nav: { header: NavItem[]; footer: NavItem[] }
   announcements: Array<{ id: string; title: string; body: unknown }>
+  /** The header logo, already resolved from its media id. Null when unset. */
+  logo: MediaItem | null
 }
 
 /**

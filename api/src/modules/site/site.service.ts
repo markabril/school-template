@@ -1,4 +1,5 @@
 import { and, asc, eq, isNull, lte, gte, or, desc } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   settingsSchema,
   DEFAULT_SETTINGS,
@@ -17,8 +18,10 @@ import {
   inquiries,
 } from '../../db/schema/index.js'
 import { notFound } from '../../lib/errors.js'
+import { newId } from '../../lib/ids.js'
 import { audit } from '../../lib/audit.js'
 import { revalidate, PURGE_EVERYTHING } from '../../lib/revalidate.js'
+import { pathsForBlockTypes } from '../../lib/purge.js'
 import { toPublic as mediaToPublic } from '../media/media.service.js'
 
 interface Actor {
@@ -30,7 +33,10 @@ interface Actor {
 
 export async function getSettings(): Promise<SiteSettings> {
   const rows = await db.select().from(siteSettings)
-  const stored = Object.fromEntries(rows.map((r) => [r.key, r.value]))
+  // Only declared keys. The table also holds internal bookkeeping such as the
+  // demo manifest, and this object is served publicly.
+  const known = new Set(Object.keys(DEFAULT_SETTINGS))
+  const stored = Object.fromEntries(rows.filter((r) => known.has(r.key)).map((r) => [r.key, r.value]))
   // Defaults fill any gap, so a missing row can never render the site blank.
   return { ...DEFAULT_SETTINGS, ...stored } as SiteSettings
 }
@@ -87,55 +93,165 @@ export async function listNavigation() {
   }))
 }
 
-/** Header and footer trees for the public site. Unpublished targets are hidden. */
-export async function publicNavigation() {
-  const all = await listNavigation()
-  const visible = all.filter((n) => !n.pageId || n.pageStatus === 'published')
+export interface NavLinkInput {
+  label: string
+  pageId?: string | null
+  url?: string | null
+  opensNewTab?: boolean
+}
 
-  const build = (location: 'header' | 'footer') => {
-    const items = visible.filter((n) => n.location === location)
-    const roots = items.filter((n) => !n.parentId)
-    return roots.map((r) => ({
-      id: r.id,
-      label: r.label,
-      href: r.href,
-      opensNewTab: r.opensNewTab,
-      children: items
-        .filter((c) => c.parentId === r.id)
-        .map((c) => ({ id: c.id, label: c.label, href: c.href, opensNewTab: c.opensNewTab })),
-    }))
+export interface NavInputItem extends NavLinkInput {
+  location: 'header' | 'footer'
+  children?: NavLinkInput[]
+}
+
+const navLinkInputSchema = z.object({
+  label: z.string().min(1).max(80).trim(),
+  pageId: z.string().nullish(),
+  url: z.string().max(300).nullish(),
+  opensNewTab: z.boolean().optional(),
+})
+
+/**
+ * Exactly one level of nesting. Children are `strict`, so a child carrying its
+ * own `children` is rejected rather than silently flattened.
+ */
+export const navigationInputSchema = z.object({
+  items: z
+    .array(
+      navLinkInputSchema.extend({
+        location: z.enum(['header', 'footer']),
+        children: z.array(navLinkInputSchema.strict()).max(20).optional(),
+      }),
+    )
+    .max(60),
+})
+
+export interface PublicNavLink {
+  id: string
+  label: string
+  href: string
+  opensNewTab: boolean
+}
+
+export interface PublicNavItem {
+  id: string
+  label: string
+  /** Null when the item opens a dropdown rather than navigating. */
+  href: string | null
+  opensNewTab: boolean
+  children: PublicNavLink[]
+}
+
+/**
+ * Header and footer trees for the public site.
+ *
+ * A top-level item with visible children is not itself a link: clicking it
+ * opens its panel. If the editor also gave it a page or URL, that link becomes
+ * the first child, so nothing they set is silently dropped. Items pointing at
+ * unpublished pages are hidden, and a parent left with nothing to show is
+ * dropped.
+ */
+export async function publicNavigation(): Promise<{ header: PublicNavItem[]; footer: PublicNavItem[] }> {
+  const rows = await listNavigation()
+  type Row = (typeof rows)[number]
+
+  const visible = (r: Row) => !r.pageId || r.pageStatus === 'published'
+  const linkOf = (r: Row): PublicNavLink | null =>
+    visible(r) && (r.pageId || r.url)
+      ? { id: r.id, label: r.label, href: r.href, opensNewTab: r.opensNewTab }
+      : null
+
+  const build = (location: 'header' | 'footer'): PublicNavItem[] => {
+    const own = rows.filter((r) => r.location === location)
+
+    return own
+      .filter((r) => !r.parentId)
+      .sort((a, b) => a.seq - b.seq)
+      .flatMap((parent): PublicNavItem[] => {
+        const children = own
+          .filter((c) => c.parentId === parent.id)
+          .sort((a, b) => a.seq - b.seq)
+          .map(linkOf)
+          .filter((l): l is PublicNavLink => l !== null)
+        const self = linkOf(parent)
+
+        if (children.length === 0) return self ? [{ ...self, children: [] }] : []
+
+        return [
+          {
+            id: parent.id,
+            label: parent.label,
+            href: null,
+            opensNewTab: false,
+            children: self ? [self, ...children] : children,
+          },
+        ]
+      })
   }
 
   return { header: build('header'), footer: build('footer') }
 }
 
-export async function saveNavigation(
-  items: Array<{
-    location: 'header' | 'footer'
-    label: string
-    pageId?: string | null
-    url?: string | null
-    parentId?: string | null
-    opensNewTab?: boolean
-  }>,
-  actor: Actor,
-) {
-  // Replace wholesale: the editor sends the complete ordered list, so a diff
-  // would be more code and more ways to corrupt the ordering.
+/** The stored navigation in the same shape `saveNavigation` accepts. */
+export async function exportNavigationTree(): Promise<NavInputItem[]> {
+  const rows = await listNavigation()
+  const strip = (r: (typeof rows)[number]): NavLinkInput => ({
+    label: r.label,
+    pageId: r.pageId,
+    url: r.url,
+    opensNewTab: r.opensNewTab,
+  })
+
+  return rows
+    .filter((r) => !r.parentId)
+    .sort((a, b) => (a.location === b.location ? a.seq - b.seq : a.location === 'header' ? -1 : 1))
+    .map((p) => ({
+      location: p.location,
+      ...strip(p),
+      children: rows
+        .filter((c) => c.parentId === p.id)
+        .sort((a, b) => a.seq - b.seq)
+        .map(strip),
+    }))
+}
+
+export async function saveNavigation(items: NavInputItem[], actor: Actor) {
+  // Replaced wholesale. Each parent is inserted first with an id generated
+  // here, so its children reference a row that exists — the previous flat
+  // save regenerated ids and would have orphaned any parentId.
   db.transaction((tx) => {
     tx.delete(navigation).run()
     items.forEach((item, i) => {
+      const parentId = newId()
       tx.insert(navigation)
         .values({
+          id: parentId,
           location: item.location,
           label: item.label,
           pageId: item.pageId ?? null,
-          url: item.url ?? null,
-          parentId: item.parentId ?? null,
+          // A page reference wins over a typed address: it survives renames.
+          url: item.pageId ? null : (item.url ?? null),
+          parentId: null,
           seq: i,
           opensNewTab: item.opensNewTab ?? false,
         })
         .run()
+
+      ;(item.children ?? []).forEach((child, j) => {
+        tx.insert(navigation)
+          .values({
+            id: newId(),
+            location: item.location,
+            label: child.label,
+            pageId: child.pageId ?? null,
+            url: child.pageId ? null : (child.url ?? null),
+            parentId,
+            seq: j,
+            opensNewTab: child.opensNewTab ?? false,
+          })
+          .run()
+      })
     })
   })
 
@@ -211,14 +327,14 @@ export async function upsertStaff(
     ip: actor.ip,
   })
 
-  revalidate(PURGE_EVERYTHING)
+  revalidate(['/staff', ...(await pathsForBlockTypes(['staffGrid']))])
   return row
 }
 
 export async function removeStaff(id: string, actor: Actor) {
   await db.delete(staff).where(eq(staff.id, id))
   audit({ actorUserId: actor.id, action: 'staff.deleted', entity: 'staff', entityId: id, ip: actor.ip })
-  revalidate(PURGE_EVERYTHING)
+  revalidate(['/staff', ...(await pathsForBlockTypes(['staffGrid']))])
 }
 
 /* --------------------------------------------------------------- downloads */
@@ -274,14 +390,48 @@ export async function upsertDownload(
     ip: actor.ip,
   })
 
-  revalidate(PURGE_EVERYTHING)
+  revalidate(['/downloads', ...(await pathsForBlockTypes(['downloadsList']))])
   return row
 }
 
 export async function removeDownload(id: string, actor: Actor) {
   await db.delete(downloads).where(eq(downloads.id, id))
   audit({ actorUserId: actor.id, action: 'download.deleted', entity: 'download', entityId: id, ip: actor.ip })
-  revalidate(PURGE_EVERYTHING)
+  revalidate(['/downloads', ...(await pathsForBlockTypes(['downloadsList']))])
+}
+
+/* ------------------------------------------------------------------ chrome */
+
+/**
+ * Everything the site chrome needs, in one query set.
+ *
+ * The logo is stored as a media id and resolved here, so the header never has
+ * to fetch it separately and a logo deleted from the library degrades to the
+ * wordmark rather than a broken image on every page.
+ */
+export async function publicChrome() {
+  const [settings, nav, announcementRows] = await Promise.all([
+    getSettings(),
+    publicNavigation(),
+    activeAnnouncements(),
+  ])
+
+  const logoId = settings['site.logoMediaId']
+  const logoRow = logoId
+    ? await db
+        .select()
+        .from(media)
+        .where(eq(media.id, logoId))
+        .limit(1)
+        .then((r) => r[0])
+    : undefined
+
+  return {
+    settings,
+    nav,
+    announcements: announcementRows,
+    logo: logoRow ? mediaToPublic(logoRow) : null,
+  }
 }
 
 /* ----------------------------------------------------------- announcements */

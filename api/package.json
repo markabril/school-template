@@ -12,7 +12,9 @@
     "seed": "tsx src/db/seed.ts",
     "db:reset": "node -e \"require('fs').rmSync('data/school.db',{force:true})\" && npm run migrate && npm run seed",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "create-admin": "tsx src/scripts/create-admin.ts"
+    "create-admin": "tsx src/scripts/create-admin.ts",
+    "test": "vitest run",
+    "seed:demo": "tsx src/scripts/seed-demo.ts"
   },
   "dependencies": {
     "@cms/shared": "*",
@@ -38,6 +40,7 @@
     "drizzle-kit": "^0.31.10",
     "pino-pretty": "^13.0.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^5.0.1"
   }
 }

@@ -38,6 +38,38 @@ Then open http://localhost:3100 for the public scaffold, or http://localhost:310
 
 Invitation and reset emails are written as `.eml` files to `api/data/mail/` in development. Open one to get the link — no SMTP required.
 
+- two-tier maroon header; dropdown on About
+- homepage: full-bleed hero → featured news (large + two) → events (featured + dated list) → three stories columns
+- maroon footer with column headings
+- inner pages open with the maroon band and breadcrumb
+
+For each mobile capture, confirm no horizontal scroll and the Menu button in place of the desktop nav.
+
+- [ ] **Step 5: Document the redesign**
+
+In `README.md`, add after the `## Getting started` section:
+
+````markdown
+## Demo content
+
+```bash
+npm run seed:demo            # fill the site with sample school content
+npm run seed:demo -- --remove  # remove exactly that content
+```
+
+`seed:demo` needs an administrator (`npm run create-admin`) and the 18 stock photos listed in `docs/demo-image-credits.md`, saved in `api/data/demo-images/` (gitignored). Every photo is captioned **PLACEHOLDER — replace before launch** in the media library.
+
+Every id it creates is recorded in a manifest, along with a snapshot of the homepage, navigation and settings it replaces. `--remove` deletes exactly those ids and restores the snapshot; content added by a person in the meantime is untouched. Running `seed:demo` twice refuses rather than duplicating.
+
+## Tests and checks
+
+| Command | What it checks | Needs |
+|---|---|---|
+| `npm test` | API and shared unit tests, on an in-memory database | nothing |
+| `npm run typecheck` | All workspaces | nothing |
+| `npm run check:render` | Server-rendered structure of every public page | `npm run dev` and `npm run seed:demo` |
+| `npm run audit:a11y` | Structural accessibility of every public page | `npm run dev` and `npm run seed:demo` |
+
 ## Scripts
 
 Run from the repo root:
@@ -128,6 +160,8 @@ The design pass is done: Fraunces Variable self-hosted (36KB, latin subset only)
 
 - **The crest vector** — the one hard blocker. Without it the header shows a wordmark rather than a logo, and there is no favicon. See `docs/design-system.md` §5–6.
 - **Content loading and staff training**, then launch: domain, TLS, backups.
+
+Public site redesign: two-tier maroon header with keyboard-accessible dropdowns, column-driven maroon footer, featured news and events layouts, a stories-columns block, maroon title bands with breadcrumbs, category filtering and pagination on News, related articles, month-grouped events, and removable stock-photo demo content. Layout patterns follow https://up.edu.ph/; branding is the school's own.
 
 ## Typography
 

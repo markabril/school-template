@@ -8,6 +8,7 @@ import NewsTeaserEditor from '~/components/admin/blocks/NewsTeaserEditor.vue'
 import EventsTeaserEditor from '~/components/admin/blocks/EventsTeaserEditor.vue'
 import StaffGridEditor from '~/components/admin/blocks/StaffGridEditor.vue'
 import DownloadsListEditor from '~/components/admin/blocks/DownloadsListEditor.vue'
+import StoriesColumnsEditor from '~/components/admin/blocks/StoriesColumnsEditor.vue'
 
 export interface EditableBlock {
   key: string
@@ -64,6 +65,7 @@ const EDITORS: Record<BlockType, Component> = {
   eventsTeaser: EventsTeaserEditor,
   staffGrid: StaffGridEditor,
   downloadsList: DownloadsListEditor,
+  storiesColumns: StoriesColumnsEditor,
 }
 </script>
 

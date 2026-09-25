@@ -9,8 +9,9 @@ import { badRequest, notFound } from '../../lib/errors.js'
 import { audit } from '../../lib/audit.js'
 import { logger } from '../../lib/logger.js'
 import { detectType, assertSize } from './validate.js'
+import { env } from '../../env.js'
 
-export const MEDIA_ROOT = path.resolve('data/media')
+export const MEDIA_ROOT = path.resolve(env.MEDIA_DIR)
 
 /** Widths generated for every raster upload. Covers phone through 2x desktop. */
 export const DERIVATIVE_WIDTHS = [400, 800, 1200, 1600] as const

@@ -138,3 +138,82 @@
     left: 0;
   }
 }
+
+@layer components {
+  .btn-maroon,
+  .btn-outline,
+  .btn-gold,
+  .btn-ghost-light {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    transition:
+      background-color 0.15s,
+      color 0.15s,
+      border-color 0.15s;
+  }
+
+  .btn-maroon {
+    border-radius: var(--radius-card);
+    background: var(--color-maroon);
+    color: var(--color-cream);
+    padding: 0.625rem 1.25rem;
+  }
+  .btn-maroon:hover {
+    background: var(--color-maroon-deep);
+  }
+
+  .btn-outline {
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-maroon);
+    color: var(--color-maroon);
+    padding: 0.5rem 1.125rem;
+  }
+  .btn-outline:hover {
+    background: var(--color-maroon-tint);
+  }
+
+  /* Hero primary action: gold-light with maroon-deep text measures 7.9:1. */
+  .btn-gold {
+    border-radius: 9999px;
+    background: var(--color-gold-light);
+    color: var(--color-maroon-deep);
+    padding: 0.75rem 1.5rem;
+  }
+  .btn-gold:hover {
+    background: var(--color-cream);
+  }
+
+  .btn-ghost-light {
+    border-radius: 9999px;
+    border: 1px solid rgb(250 247 242 / 0.55);
+    color: var(--color-cream);
+    padding: 0.75rem 1.5rem;
+  }
+  .btn-ghost-light:hover {
+    background: rgb(250 247 242 / 0.12);
+  }
+
+  .chip {
+    display: inline-flex;
+    border-radius: 9999px;
+    border: 1px solid var(--color-hairline);
+    background: #fff;
+    padding: 0.375rem 0.875rem;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-ink-muted);
+  }
+  .chip:hover {
+    border-color: var(--color-maroon);
+    color: var(--color-maroon);
+  }
+  .chip-active,
+  .chip-active:hover {
+    border-color: var(--color-maroon);
+    background: var(--color-maroon);
+    color: var(--color-cream);
+  }
+}
